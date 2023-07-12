@@ -4,6 +4,11 @@ import time
 import numpy as np
 import os
 
+def forward_kinematics(b_id, joint_config):
+    """ calculate the end effector position from the joint configuration """
+    end_effector_position = p.getLinkState(b_id, 5)[0]
+    return end_effector_position
+
 def move_cobot_joints(b_id, joint_config):
     """ use pybullet to move the joints of the mycobot """
     p.setJointMotorControlArray(
@@ -21,6 +26,9 @@ def move_end_effector_in_circle(b_id, radius, frequency):
     joint_config[0] = radius * np.cos(2 * np.pi * frequency * time.time())
     joint_config[1] = radius * np.sin(2 * np.pi * frequency * time.time())
     move_cobot_joints(b_id, joint_config)
+
+    end_effector_position = forward_kinematics(b_id, joint_config)
+    p.addUserDebugLine(end_effector_position, end_effector_position + np.array([0, 0, 0.02]), [1, 0, 0],lineWidth=2.0)
 
 
 if __name__ == "__main__":
@@ -40,6 +48,6 @@ if __name__ == "__main__":
 
     frequency = 0.1
     while True:
-        move_end_effector_in_circle(b_id, 0.5, frequency)
+        move_end_effector_in_circle(b_id, 1.0, frequency)
         p.stepSimulation()
         time.sleep(1./240.)
