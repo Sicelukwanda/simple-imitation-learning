@@ -15,6 +15,14 @@ def move_cobot_joints(b_id, joint_config):
     )
 
 
+def move_end_effector_in_circle(b_id, radius, frequency):
+    """ move the robot end effector in a circle """
+    joint_config = np.zeros(6)
+    joint_config[0] = radius * np.cos(2 * np.pi * frequency * time.time())
+    joint_config[1] = radius * np.sin(2 * np.pi * frequency * time.time())
+    move_cobot_joints(b_id, joint_config)
+
+
 if __name__ == "__main__":
 
     root_path = "mycobot_description/urdf/mycobot/"
@@ -30,6 +38,8 @@ if __name__ == "__main__":
     p.setAdditionalSearchPath(pd.getDataPath())
     p.loadURDF("plane.urdf")
 
+    frequency = 0.1
     while True:
+        move_end_effector_in_circle(b_id, 0.5, frequency)
         p.stepSimulation()
         time.sleep(1./240.)
