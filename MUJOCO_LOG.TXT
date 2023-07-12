@@ -1,0 +1,3 @@
+Thu Jun 29 17:05:15 2023
+WARNING: mju_openResource: unknown file 'mycobot_description/urdf/mycobotmycobot_urdf.urdf'
+
