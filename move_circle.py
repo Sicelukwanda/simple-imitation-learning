@@ -13,6 +13,9 @@ class PybulletRobot():
             physicsClientId=self.sim_client_id
             )
         self.init_joint_config = np.zeros(6, dtype=np.float32)
+        self.init_joint_config[2] = -np.pi/2
+        self.init_joint_config[5] = -np.pi/2
+
         self.DOF = 6 # 6 joints, but 1 is fixed
         self.eef_index = 5
         # reset the robot to the initial position
@@ -23,6 +26,8 @@ class PybulletRobot():
     def reset_joints(self):
         """ reset the robot to the initial position """
         self.move_joints_position(self.init_joint_config)
+        for i in range(20):
+            p.stepSimulation()
     # return joint information for all joint states (including fixed joints)
     def getJointStates(self):
         joint_states = p.getJointStates(self.b_id, range(self.DOF))
@@ -57,7 +62,7 @@ class PybulletRobot():
         # Note that in this example com_rot = identity, and we would need to use com_rot.T * com_trn.
         # The localPosition is always defined in terms of the link frame coordinates.
         pos, vel, torq = robot.getJointStates()
-        zero_vec = [5.0] * len(pos) # base of robot is fixed
+        zero_vec = [0.0] * len(pos) # base of robot is fixed
         # compute translation and rotation Jacobian
         jac_t, jac_r = p.calculateJacobian(self.b_id, self.eef_index, com_trn, pos, zero_vec, zero_vec)
 
@@ -95,11 +100,11 @@ def circle3D(t, p, returnVel=True):
     """
     # TODO: shift the circle by the radius so that p is on the circle!
     p = np.array(p) # intitial end effector
-    r = .1 # radius of circle
-    v1 = np.array([1,0,0])
-    v2 = np.array([0,1,0])
+    r = .05 # radius of circle
+    v1 = np.array([0,1,0])
+    v2 = np.array([0,0,1])
     
-    pos = p - np.array([r,0,0]) + r*np.cos(t)*v1 + r*np.sin(t)*v2
+    pos = p - np.array([0,r,0]) + r*np.cos(t)*v1 + r*np.sin(t)*v2
     if returnVel:
         zero_shift = -np.pi/2.0
         vel = -r*np.sin(t+zero_shift)*v1 + r*np.cos(t+zero_shift)*v2 - np.array([r,0,0]) 
@@ -139,9 +144,10 @@ if __name__ == "__main__":
     
     # constants
     WAYPOINT_DURATION = 3
-
-    D_GAIN = 0.6
-    P_GAIN = 1.0
+    
+    # handtuned gains
+    D_GAIN = 0.3
+    P_GAIN = 5.0
     SIM_DURATION = 10 # time in seconds
     TOTAL_SIM_STEPS = int(SIM_DURATION/PHYSICS_TIME_STEP) # seconds
 
@@ -192,16 +198,31 @@ if __name__ == "__main__":
         # TODO: use the joint command to calculate the jacobian matrix
         # TODO: use the jacobian matrix to calculate the end effector velocity
 
-        jac_matrix, link_vr, link_trn = robot.jacobian()
+        pos_jac_matrix, link_vr, link_trn = robot.jacobian()
         # compute psuedo-inverse Jacobian
-        pinv_jac = np.linalg.pinv(jac_matrix)
-
+        pinv_jac = np.linalg.pinv(pos_jac_matrix)
+        
+        assert pos_jac_matrix.shape == (3,6), f"Jacobian shape incorrect!, recieved {pos_jac_matrix.shape}, expected (3,6)"
+        
         # compute control 
-        PD_error = D_GAIN*(eef_desired_vel-link_vr) + P_GAIN*(eef_desired_pos-link_trn)
-        # orn = p.getQuaternionFromEuler([np.pi,0., 0.])
+        eef_vel = prev_eef_pos - eef_pos
+        PD_error = 0*D_GAIN*(eef_desired_vel - eef_vel) + P_GAIN*(eef_desired_pos - eef_pos)
 
-        # q_dot = np.matmul(pinv_jac, PD_error)
-        q_dot = 0.5*np.sin(6*[v])+0.5*np.cos(6*[v])
+        # clip pd error
+        # PD_error = np.clip(PD_error, -0.5,0.5)
+
+        if t>0: 
+            p.addUserDebugLine(
+                PD_error, 
+                prev_PD_error , 
+                lineColorRGB=[0.62, 0.13, 0.9], 
+                lineWidth=2.0
+                )
+        prev_PD_error = PD_error
+        # orn = p.getQuaternionFromEuler([np.pi,0., 0.])
+        
+        q_dot = np.matmul(pinv_jac, PD_error)
+        # q_dot = 0.5*np.sin(6*[v])+0.5*np.cos(6*[v])
         # limit velocities
         # q_dot = np.clip(q_dot, -1.0, 1.0)
         joint_pos, joint_vel, _ =  robot.getJointStates()
