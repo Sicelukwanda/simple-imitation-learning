@@ -36,15 +36,6 @@ class PybulletRobot():
         joint_torques = [state[3] for state in joint_states]
         return joint_positions, joint_velocities, joint_torques
 
-    # return joint information for the motorized joints only
-    # def getMotorJointStates(robot):
-    #     joint_states = p.getJointStates(robot, range(p.getNumJoints(robot)))
-    #     joint_infos = [p.getJointInfo(robot, i) for i in range(p.getNumJoints(robot))]
-    #     joint_states = [j for j, i in zip(joint_states, joint_infos) if i[3] > -1]
-    #     joint_positions = [state[0] for state in joint_states]
-    #     joint_velocities = [state[1] for state in joint_states]
-    #     joint_torques = [state[3] for state in joint_states]
-    #     return joint_positions, joint_velocities, joint_torques
 
     def forward_kinematics(self):
         """ calculate the end effector position from the joint configuration """
@@ -89,16 +80,15 @@ class PybulletRobot():
             bodyIndex=self.b_id,
             jointIndices=[0, 1, 2, 3, 4, 5],
             controlMode=p.VELOCITY_CONTROL,
-            targetVelocity=joint_vels,
+            targetVelocities=joint_vels,
             forces=[100, 100, 100, 100, 100, 100],
         )
     
 
 def circle3D(t, p, returnVel=True):
     """
-    Given t, and starting position p, returns a 3D position (x,y,z) and  that lies on a circle in cartesian space 
+    Given t (time in seconds), and starting position p, returns a 3D position (x,y,z) and  that lies on a circle in cartesian space 
     """
-    # TODO: shift the circle by the radius so that p is on the circle!
     p = np.array(p) # intitial end effector
     r = .05 # radius of circle
     v1 = np.array([0,1,0])
@@ -111,12 +101,25 @@ def circle3D(t, p, returnVel=True):
         return  pos, vel
     return pos
 
+def visualize(start_vec, end_vec, rgb_color, sim_id):
+    """Draw line segment in x,y,z between start_vec and end_vec"""
+    p.addUserDebugLine(
+                start_vec, 
+                end_vec, 
+                lineColorRGB = rgb_color, 
+                lineWidth = 2.0,
+                physicsClientId = sim_id
+                )
+
 if __name__ == "__main__":
 
+    # start a simulator client
     client_id = p.connect(p.GUI)
+
     # disable debug visualizer
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-    # TODO: set the camera position
+
+    # set the viewing position
     p.resetDebugVisualizerCamera(
         cameraDistance=0.5,
         cameraYaw=135,
@@ -135,18 +138,12 @@ if __name__ == "__main__":
 
     urdf_path = "mycobot_description/urdf/mycobot/mycobot_urdf.urdf"
     robot = PybulletRobot(urdf_path,client_id)
-    # info = p.getJointStates(robot.b_id, range(p.getNumJoints(robot.b_id)))
-    # print(info)
-    # print(len(info))
-    # move in a circle
+
     # get the initial eef position
     init_eef_pos = robot.get_eef_pos() 
     
-    # constants
-    WAYPOINT_DURATION = 3
-    
     # handtuned gains
-    D_GAIN = 0.3
+    D_GAIN = 0.2
     P_GAIN = 5.0
     SIM_DURATION = 10 # time in seconds
     TOTAL_SIM_STEPS = int(SIM_DURATION/PHYSICS_TIME_STEP) # seconds
@@ -167,85 +164,53 @@ if __name__ == "__main__":
         v = traj_times[t]*1.5
         eef_desired_pos, eef_desired_vel = circle3D(v, init_eef_pos, returnVel=True)
         if t>0: 
+            
             p.addUserDebugLine(
                 eef_desired_pos, 
                 prev_eef_desired_pos, 
                 lineColorRGB=[0, 1, 0.02], 
                 lineWidth=2.0
                 )
-            p.addUserDebugLine(
-                eef_desired_vel,
-                prev_eef_desired_vel,
-                lineColorRGB=[0, 0, 1],
-                lineWidth=2.0
-                )
+
         prev_eef_desired_pos  = eef_desired_pos
-        prev_eef_desired_vel = eef_desired_vel
 
         eef_pos = robot.get_eef_pos()
-        if t>0: 
-            p.addUserDebugLine(
+
+        if t > 0: 
+            visualize(
                 eef_pos, 
                 prev_eef_pos, 
-                lineColorRGB=[1, 0.16, 0.02], 
-                lineWidth=2.0
+                [1, 0.16, 0.02], 
+                client_id
                 )
         prev_eef_pos  = eef_pos 
 
-        # get the joint command from PD controller
-        # TODO: calculate the joint command from PD controller
-        # TODO: use the joint command to move the robot
-        # TODO: use the joint command to calculate the jacobian matrix
-        # TODO: use the jacobian matrix to calculate the end effector velocity
-
+        # compute Jacobian (position only)
         pos_jac_matrix, link_vr, link_trn = robot.jacobian()
+
         # compute psuedo-inverse Jacobian
         pinv_jac = np.linalg.pinv(pos_jac_matrix)
-        
-        assert pos_jac_matrix.shape == (3,6), f"Jacobian shape incorrect!, recieved {pos_jac_matrix.shape}, expected (3,6)"
+           
         
         # compute control 
         eef_vel = prev_eef_pos - eef_pos
-        PD_error = 0*D_GAIN*(eef_desired_vel - eef_vel) + P_GAIN*(eef_desired_pos - eef_pos)
+        PD_error = D_GAIN*(eef_desired_vel - eef_vel) + P_GAIN*(eef_desired_pos - eef_pos)
 
-        # clip pd error
-        # PD_error = np.clip(PD_error, -0.5,0.5)
-
-        if t>0: 
-            p.addUserDebugLine(
-                PD_error, 
-                prev_PD_error , 
-                lineColorRGB=[0.62, 0.13, 0.9], 
-                lineWidth=2.0
-                )
-        prev_PD_error = PD_error
-        # orn = p.getQuaternionFromEuler([np.pi,0., 0.])
-        
+        # use jacobian to convert end-effector velocities to joint velocities            
         q_dot = np.matmul(pinv_jac, PD_error)
-        # q_dot = 0.5*np.sin(6*[v])+0.5*np.cos(6*[v])
-        # limit velocities
-        # q_dot = np.clip(q_dot, -1.0, 1.0)
+
+        # save robot joint states
         joint_pos, joint_vel, _ =  robot.getJointStates()
         states.append(np.concatenate([joint_pos, joint_vel]))
         actions.append(q_dot)
+
         # move the robot
-        # robot.move_joints_velocity(q_dot)
-        # for i in range(24):
-        #     print("desired eef velocity:", eef_desired_vel)
-        #     print("actual eef velocity:", link_vr)
-        #     print(q_dot)
-        for i in range(robot.DOF): # the first 7 joints correspond to the arm joints
-            p.setJointMotorControl2(robot.b_id, i, 
-                                p.VELOCITY_CONTROL, targetVelocity=q_dot[i], 
-                                force=robot.force_limits[i]) 
+        robot.move_joints_velocity(q_dot)
 
         p.stepSimulation()
-        time.sleep(1./240.)
-        # t+=0.005
-        # if t>10*np.pi:
-        #     break
+
+
     states = np.array(states)
     actions = np.array(actions)
     np.save("states.npy", states)
     np.save("actions.npy", actions)
-    # print(states.shape)
