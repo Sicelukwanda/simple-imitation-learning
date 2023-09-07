@@ -1,4 +1,3 @@
-from platform import architecture
 import jax
 import jax.numpy as jnp
 import flax
@@ -10,8 +9,6 @@ from sklearn.model_selection import train_test_split
 from typing import Sequence, Tuple, NamedTuple, Any, Dict
 import matplotlib.pyplot as plt
 import numpy as np
-
-seed = jax.random.PRNGKey(0)
 
 
 # Loading trajectories
@@ -46,7 +43,7 @@ X_test = (X_test - mean) / std
 # Neural Network
 
 class MultiLayerPerceptronRegressor(nn.Module):
-    features: Sequence[int] = (state_n,10,15,action_n)
+    features: Sequence[int] = (state_n,32,32,action_n)
 
     def setup(self):
         self.layers = [nn.Dense(feat) for feat in self.features]
@@ -59,10 +56,11 @@ class MultiLayerPerceptronRegressor(nn.Module):
                 x = nn.relu(x)
         return x
 
-nn_architecture = (state_n,10,15,action_n)
+nn_architecture = (state_n,256,256,action_n)
 model = MultiLayerPerceptronRegressor(nn_architecture)
-params = model.init(seed, X_train[:5])
 
+seed = jax.random.PRNGKey(0)
+params = model.init(seed, X_train[:5])
 for layer_params in params["params"].items():
     print("Layer Name : {}".format(layer_params[0]))
     weights, biases = layer_params[1]["kernel"], layer_params[1]["bias"]
@@ -106,15 +104,14 @@ for i in range(1,epochs+1):
         print('MSE After {} Epochs : {:.2f}'.format(i, jnp.mean(jnp.array(loss_val[-100:-1]))))
 
 
-# Plot training and validation loss
+# Plot of training and validation loss
+
 plt.plot(loss_train, label='Training Loss')
 plt.plot(loss_val, label='Validation Loss')
 plt.xlabel('Iteration')
 plt.ylabel('Loss')
 plt.title('Training and Validation Loss')
 plt.legend()
-
-# Display the plot
 plt.show()
 
 # Evaluating
