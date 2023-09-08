@@ -98,7 +98,8 @@ def visualize(start_vec, end_vec, rgb_color, sim_id):
 
 if __name__ == "__main__":
     # Start a simulator client
-    client_id = p.connect(p.GUI)
+    client_id = p.connect(p.GUI, options='--background_color_red=0.8 --background_color_green=0.9 --background_color_blue=1.0')
+
 
     # Disable debug visualizer
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)

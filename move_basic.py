@@ -35,7 +35,8 @@ if __name__ == "__main__":
 
     root_path = "mycobot_description/urdf/mycobot/"
 
-    client = p.connect(p.GUI)
+    client = p.connect(p.GUI, options='--background_color_red=0.8 --background_color_green=0.9 --background_color_blue=1.0')
+
     p.setGravity(0, 0, -9.8)
     b_id = p.loadURDF(root_path + "mycobot_urdf.urdf", useFixedBase=True)
 
