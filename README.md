@@ -2,7 +2,11 @@
 
 ![](data/cobot.png)
 ## Setup (tested with Python 3.8)
-Install `numpy` and `pybullet`, i.e., `pip install pybullet`
+Within a Python environment install `numpy` and `pybullet`, i.e., `pip install pybullet`
+
+Clone repo locally:
+
+`git clone https://github.com/Sicelukwanda/robot_learning_tutorial.git`
 
 Use this repo to collect data for training your Behavioural Cloning (BC) model. To help you along we have included python scripts:
 
