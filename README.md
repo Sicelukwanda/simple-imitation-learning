@@ -1,4 +1,5 @@
-# Robot Learning Tutorial @ Deep Learning Indaba 2023
+# Robot Learning Workshop Tutorial @ Deep Learning Indaba 2023
+Website: [https://sites.google.com/view/robotlearning4africa/home](https://sites.google.com/view/robotlearning4africa/home)
 
 ![](data/cobot.png)
 ## Setup (tested with Python 3.8)
