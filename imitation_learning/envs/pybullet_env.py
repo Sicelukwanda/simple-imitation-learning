@@ -62,11 +62,19 @@ class PybulletRobot:
         return joint_positions, joint_velocities, joint_torques
 
     def jacobian(self):
-        """Calculate the Jacobian matrix of the end effector."""
+        """Calculate the Jacobian matrix of mycobot (and velocity of eef link)."""
+        result = p.getLinkState(self.b_id,
+                                self.eef_index,
+                                computeLinkVelocity=1,
+                                computeForwardKinematics=1)
+        link_trn, link_rot, com_trn, com_rot, frame_pos, frame_rot, link_vt, link_vr = result
+
         pos, vel, torq = self.get_joint_states()
-        zero_vec = [0.0] * len(pos)
-        jac_t, jac_r = p.calculateJacobian(self.b_id, self.eef_index, [0, 0, 0], pos, zero_vec, zero_vec)
-        return np.array(jac_t, dtype=np.float32)
+        zero_vec = [0.0] * len(pos)  # base of robot is fixed
+        jac_t, jac_r = p.calculateJacobian(self.b_id, self.eef_index, com_trn, pos, zero_vec, zero_vec)
+
+        return np.array(jac_t, dtype=np.float32), np.array(link_vr, dtype=np.float32), np.array(link_trn, dtype=np.float32)
+
     
     def forward_kinematics(self, b_id=-1):
         """ calculate the end effector position from the joint configuration """
