@@ -1,5 +1,4 @@
 import importlib.resources as pkg_resources
-import os
 
 # Dictionary to store URDF paths for different robot models
 ROBOT_URDF_REGISTRY = {
