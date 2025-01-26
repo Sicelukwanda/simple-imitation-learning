@@ -5,7 +5,7 @@ from imitation_learning.robot_models import get_urdf_path
 
 @dataclass
 class RobotConfig:
-    
+
     urdf_path: str
     DOF: int
     init_joint_config: np.ndarray
@@ -67,6 +67,14 @@ class PybulletRobot:
         zero_vec = [0.0] * len(pos)
         jac_t, jac_r = p.calculateJacobian(self.b_id, self.eef_index, [0, 0, 0], pos, zero_vec, zero_vec)
         return np.array(jac_t, dtype=np.float32)
+    
+    def forward_kinematics(self, b_id=-1):
+        """ calculate the end effector position from the joint configuration """
+        if b_id == -1:
+            end_effector_position = p.getLinkState(self.b_id, self.eef_index)[0]
+        else:
+            end_effector_position = p.getLinkState(b_id, self.eef_index)[0]
+        return end_effector_position
 
     def move_joints_position(self, joint_config):
         p.setJointMotorControlArray(
