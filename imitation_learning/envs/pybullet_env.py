@@ -82,7 +82,10 @@ class PybulletRobot:
             end_effector_position = p.getLinkState(self.b_id, self.eef_index)[0]
         else:
             end_effector_position = p.getLinkState(b_id, self.eef_index)[0]
-        return end_effector_position
+        return np.array(end_effector_position)
+    
+    def inverse_kinematics(self, target_pos):
+        raise NotImplementedError
 
     def move_joints_position(self, joint_config):
         p.setJointMotorControlArray(

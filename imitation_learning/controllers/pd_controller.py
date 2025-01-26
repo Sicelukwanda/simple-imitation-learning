@@ -29,6 +29,7 @@ class PDController:
         current_pos = self.robot.forward_kinematics()
 
         # Calculate the Jacobian matrix (translational part)
+        # TODO: check the rank of the Jacobian matrix before computing the pseudo-inverse.
         jacobian_matrix, _, _ = self.robot.jacobian()
 
         # Compute the pseudo-inverse of the Jacobian

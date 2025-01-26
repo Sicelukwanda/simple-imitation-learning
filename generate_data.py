@@ -47,10 +47,8 @@ if __name__ == "__main__":
 
         # Get current position and velocity
         current_pos = robot.forward_kinematics()
-        current_vel = robot.jacobian()
 
         logging.info(f"Seconds:{time_elapsed} Current pos: {current_pos}, Desired pos: {desired_pos}")
-        logging.info(f"Seconds:{time_elapsed} Current vel: {current_vel}, Desired vel: {desired_vel}")
 
         # Compute joint velocities using the PD controller
         vel_control_signal = pd_controller(desired_pos, desired_vel)
