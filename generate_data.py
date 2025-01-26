@@ -12,9 +12,15 @@ import logging
 if __name__ == "__main__":
     
     PHYSICS_TIME_STEP = 1.0 / 240.0
+    HEADLESS = False
+    CONTROL_RATE = 1.0 / 10.0
+
     logging.basicConfig(level=logging.INFO)
 
-    client_id = p.connect(p.GUI, options='--background_color_red=0.8 --background_color_green=0.9 --background_color_blue=1.0')
+    client_id = p.connect(
+        p.DIRECT if HEADLESS else p.GUI, 
+        options='--background_color_red=0.8 --background_color_green=0.9 --background_color_blue=1.0'
+        )
 
     p.setGravity(0, 0, -9.8)
 
@@ -39,19 +45,26 @@ if __name__ == "__main__":
     # time keeping
     time_elapsed = 0.0
 
+    vel_control_signal = np.zeros(robot.DOF)  # Initialize control signal with zeros
+
+    control_timer = 0.0  # Timer to track when to update the control logic
+
     for t in np.linspace(0, 2 * np.pi, total_sim_steps):
         # Generate desired position and velocity
         desired_pos, desired_vel = circle_path(t, init_eef_pos)
 
-        time_elapsed+=PHYSICS_TIME_STEP
+        # Update control logic at CONTROL_RATE
+        control_timer += PHYSICS_TIME_STEP
+        if control_timer >= CONTROL_RATE:
+            vel_control_signal = pd_controller(desired_pos, desired_vel)
+            control_timer = 0.0  # Reset the timer
+
+        time_elapsed += PHYSICS_TIME_STEP
 
         # Get current position and velocity
         current_pos = robot.forward_kinematics()
 
         logging.info(f"Seconds:{time_elapsed} Current pos: {current_pos}, Desired pos: {desired_pos}")
-
-        # Compute joint velocities using the PD controller
-        vel_control_signal = pd_controller(desired_pos, desired_vel)
 
         # Apply joint velocities to the robot
         robot.move_joints_velocity(vel_control_signal)
@@ -71,10 +84,12 @@ if __name__ == "__main__":
         p.stepSimulation()
         time.sleep(PHYSICS_TIME_STEP)
 
-        # Collect state-action pairs
-        states.append(current_pos)
-        actions.append(vel_control_signal)
+        # Collect state-action pairs at CONTROL_RATE
+        if control_timer == 0.0:  # Control signal was just updated
+            states.append(current_pos)
+            actions.append(vel_control_signal)
+    p.disconnect()
 
     # Save the data
-    np.save("states.npy", np.array(states))
-    np.save("actions.npy", np.array(actions))
+    np.save("data/states.npy", np.array(states))
+    np.save("data/actions.npy", np.array(actions))
