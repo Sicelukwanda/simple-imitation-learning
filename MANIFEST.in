@@ -1,0 +1,1 @@
+recursive-include imitation_learning/robot_models/mycobot_description *
