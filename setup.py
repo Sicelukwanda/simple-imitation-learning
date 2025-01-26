@@ -10,7 +10,7 @@ setup(
     include_package_data=True,  # Include package data specified in MANIFEST.in
     package_data={
         "imitation_learning": [
-            "robot_models/mycobot_description/**/*",  # Include all files under mycobot_description
+           "robot_models/mycobot_description/urdf/*",  # Include all URDF files in the directory
         ],
     },
     install_requires=[
