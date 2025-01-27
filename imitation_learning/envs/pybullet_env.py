@@ -33,7 +33,7 @@ class PybulletRobot:
                 urdf_path=get_urdf_path("mycobot"),
                 DOF=6,
                 init_joint_config=init_joint_config,
-                force_limits=np.array([100, 100, 100, 100, 100, 100])* 0.5,
+                force_limits=np.array([100, 100, 100, 100, 100, 100], dtype=np.float32)* 0.5,
                 eef_index=5
             )
            
@@ -59,7 +59,7 @@ class PybulletRobot:
         joint_positions = [state[0] for state in joint_states]
         joint_velocities = [state[1] for state in joint_states]
         joint_torques = [state[3] for state in joint_states]
-        return joint_positions, joint_velocities, joint_torques
+        return np.array(joint_positions, dtype=np.float32), np.array(joint_velocities, dtype=np.float32), np.array(joint_torques, dtype=np.float32)
 
     def jacobian(self):
         """Calculate the Jacobian matrix of mycobot (and velocity of eef link)."""
@@ -71,7 +71,7 @@ class PybulletRobot:
 
         pos, vel, torq = self.get_joint_states()
         zero_vec = [0.0] * len(pos)  # base of robot is fixed
-        jac_t, jac_r = p.calculateJacobian(self.b_id, self.eef_index, com_trn, pos, zero_vec, zero_vec)
+        jac_t, jac_r = p.calculateJacobian(self.b_id, self.eef_index, com_trn, list(pos), zero_vec, zero_vec)
 
         return np.array(jac_t, dtype=np.float32), np.array(link_vr, dtype=np.float32), np.array(link_trn, dtype=np.float32)
 
@@ -82,7 +82,7 @@ class PybulletRobot:
             end_effector_position = p.getLinkState(self.b_id, self.eef_index)[0]
         else:
             end_effector_position = p.getLinkState(b_id, self.eef_index)[0]
-        return np.array(end_effector_position)
+        return np.array(end_effector_position, dtype=np.float32)
     
     def inverse_kinematics(self, target_pos):
         raise NotImplementedError

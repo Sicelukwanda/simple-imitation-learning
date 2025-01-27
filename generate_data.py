@@ -64,6 +64,9 @@ if __name__ == "__main__":
         # Get current position and velocity
         current_pos = robot.forward_kinematics()
 
+        # get current joint state
+        current_joint_pos, current_joint_vels, current_joint_torqs = robot.get_joint_states()
+
         logging.info(f"Seconds:{time_elapsed} Current pos: {current_pos}, Desired pos: {desired_pos}")
 
         # Apply joint velocities to the robot
@@ -86,8 +89,10 @@ if __name__ == "__main__":
 
         # Collect state-action pairs at CONTROL_RATE
         if control_timer == 0.0:  # Control signal was just updated
-            states.append(current_pos)
+            joint_pos_with_ee = np.concatenate([current_joint_pos, current_pos]) 
+            states.append(joint_pos_with_ee)
             actions.append(vel_control_signal)
+            
     p.disconnect()
 
     # Save the data

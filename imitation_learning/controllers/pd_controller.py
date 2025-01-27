@@ -37,11 +37,10 @@ class PDController:
 
         # Calculate the current end-effector velocity (based on position difference)
         joint_positions, joint_velocities, _ = self.robot.get_joint_states()
-        current_vel = np.array(joint_velocities, dtype=np.float32)  # Joint-space velocity
 
         # PD control error
         pos_error = desired_pos - current_pos
-        vel_error = desired_vel - np.matmul(jacobian_matrix, current_vel)
+        vel_error = desired_vel - np.matmul(jacobian_matrix, joint_velocities)
 
         # PD control signal
         pd_error = self.P_GAIN * pos_error + self.D_GAIN * vel_error
