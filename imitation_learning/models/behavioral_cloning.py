@@ -5,6 +5,8 @@ from torch.utils.data import DataLoader
 from typing import List
 import logging
 
+import wandb
+
 class Block(nn.Module):
     def __init__(self, in_dim: int, out_dim: int):
         """
@@ -109,6 +111,10 @@ def train_BC_policy(
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
+        
+        # log to wandb
+        wandb.log({"train_loss": train_loss/len(train_loader)})
+        wandb.log({"epoch": epoch+1})
 
         # evaluate on test set
         test_loss = 0.0
@@ -118,6 +124,9 @@ def train_BC_policy(
                 predictions = policy_model(states)
                 loss = MSE_loss_fn(predictions, actions)
                 test_loss += loss.item()
+
+        wandb.log({"test_loss": test_loss/len(test_loader)})
+        # wandb.log({"max_error": torch.max(torch.abs(predictions - actions)) })
         
         logging.info(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss/len(train_loader):.4f}, Test Loss: {test_loss/len(test_loader):.4f}")
     

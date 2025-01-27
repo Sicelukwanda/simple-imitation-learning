@@ -7,6 +7,8 @@ from imitation_learning.controllers import PDController
 from imitation_learning.utils.trajectory import circle_path
 from imitation_learning.utils.visualizers import visualize_ee
 
+import os
+
 import logging
 
 if __name__ == "__main__":
@@ -74,8 +76,6 @@ if __name__ == "__main__":
             # get current joint state
             current_joint_pos, current_joint_vels, current_joint_torqs = robot.get_joint_states()
 
-            logging.info(f"Ep: {ep} Seconds:{time_elapsed} Current pos: {current_pos}, Desired pos: {desired_pos}")
-
             # Apply joint velocities to the robot
             robot.move_joints_velocity(vel_control_signal)
 
@@ -96,6 +96,7 @@ if __name__ == "__main__":
 
             # Collect state-action pairs at CONTROL_RATE
             if control_timer == 0.0:  # Control signal was just updated
+                logging.info(f"Ep: {ep} Seconds:{time_elapsed} Current pos: {current_pos}, Desired pos: {desired_pos}")
                 joint_pos_with_ee = np.concatenate([current_joint_pos, current_pos]) 
                 states.append(joint_pos_with_ee)
                 actions.append(vel_control_signal)
@@ -103,5 +104,9 @@ if __name__ == "__main__":
     p.disconnect()
 
     # Save the data
-    np.save("data/states.npy", np.array(states))
-    np.save("data/actions.npy", np.array(actions))
+    idx = 0
+    while os.path.exists(f"data/states_{idx}.npy"):
+        idx += 1
+
+    np.save(f"data/states_{idx}.npy", np.array(states))
+    np.save(f"data/actions_{idx}.npy", np.array(actions))
