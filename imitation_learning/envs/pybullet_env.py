@@ -45,11 +45,20 @@ class PybulletRobot:
         
 
         self.b_id = p.loadURDF(self.urdf_path, useFixedBase=True, physicsClientId=self.sim_client_id)
+
+        self.noise_stddev = 0.05 
         self.reset_joints()
         
-    def reset_joints(self):
+    def reset_joints(self, noise=False):
         """Reset the robot to its initial position."""
-        self.move_joints_position(self.init_joint_config)
+
+        # TODO: clip joint position to joint limits if noise added
+
+        if noise:
+            noise = np.random.normal(0, self.noise_stddev, self.DOF)
+            self.move_joints_position(self.init_joint_config + noise)
+        else:
+            self.move_joints_position(self.init_joint_config)
         for _ in range(self.SIM_RESET_STEPS):
             p.stepSimulation()
 

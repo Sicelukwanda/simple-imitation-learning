@@ -3,10 +3,13 @@ from torch.utils.data import DataLoader, TensorDataset
 from imitation_learning.models import BCPolicy, train_BC_policy
 from imitation_learning.utils.data_utils import load_data
 
+import logging
+
 def default_float():
     return torch.float32
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
 
     # Load Data
     X_train, X_test, y_train, y_test = load_data("data/states.npy", "data/actions.npy")
@@ -37,7 +40,7 @@ if __name__ == "__main__":
         test_loader, 
         epochs=50, 
         learning_rate=1e-3, 
-        device='cuda' if torch.cuda_is_available() else "cpu"
+        device='cuda' if torch.cuda.is_available() else "cpu"
     ) 
     
     # save trained policy
